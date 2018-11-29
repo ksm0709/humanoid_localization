@@ -100,7 +100,7 @@ public:
   /// unpause localization by service call
   bool resumeLocalizationSrvCallback(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
   void imuCallback(const sensor_msgs::ImuConstPtr& msg);
-
+  bool Start_particlefilter_srv(SrvParticlefilter::Request &req, SrvParticlefilter::Response &res);
   
   // service for global particle filter
   //bool Start_particlefilter(SrvParticlefilter::Request& req, SrvParticlefilter::Response& res);
@@ -233,7 +233,7 @@ protected:
                  m_poseArrayPub, m_bestPosePub, m_nEffPub,
                  m_filteredPointCloudPub;
   ros::Subscriber m_imuSub;
-  ros::ServiceServer m_globalLocSrv, m_pauseLocSrv, m_resumeLocSrv;
+  ros::ServiceServer m_globalLocSrv, m_pauseLocSrv, m_resumeLocSrv, m_ResetLocSrv;
   tf::TransformListener m_tfListener;
   tf::TransformBroadcaster m_tfBroadcaster;
   ros::Timer m_timer;

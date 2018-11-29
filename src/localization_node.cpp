@@ -26,7 +26,7 @@
 #include "humanoid_localization/SrvParticlefilter.h"
 
 
-
+/*
 bool Start_particlefilter_srv(humanoid_localization::SrvParticlefilter::Request &req, humanoid_localization::SrvParticlefilter::Response &res)
 {
   ROS_INFO("global initialparticle filter is on");
@@ -49,7 +49,7 @@ bool Start_particlefilter_srv(humanoid_localization::SrvParticlefilter::Request 
   }
   return true;
 }
-
+*/
 
 
 
@@ -62,8 +62,8 @@ int main(int argc, char** argv){
   private_nh.param("seed", iseed, -1);
 
    //ros service part
-  ROS_INFO("ready srv server");
-  ros::ServiceServer service_server = private_nh.advertiseService("particlefilter_srv", Start_particlefilter_srv);
+  //ROS_INFO("ready srv server");
+  //ros::ServiceServer service_server = private_nh.advertiseService("particlefilter_srv", Start_particlefilter_srv);
  
   
 

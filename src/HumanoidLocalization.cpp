@@ -166,6 +166,12 @@ m_constrainMotionZ (false), m_constrainMotionRP(false), m_useTimer(false), m_tim
   // ROS subscriptions last:
   m_globalLocSrv = m_nh.advertiseService("global_localization", &HumanoidLocalization::globalLocalizationCallback, this);
 
+  // ROS Reset service:
+  m_ResetLocSrv = m_nh.advertiseService("start_particlefilter", &HumanoidLocalization::Start_particlefilter_srv, this);
+
+
+
+
   // subscription on laser, tf message filter
   m_laserSub = new message_filters::Subscriber<sensor_msgs::LaserScan>(m_nh, "scan", 100);
   m_laserFilter = new tf::MessageFilter<sensor_msgs::LaserScan>(*m_laserSub, m_tfListener, m_odomFrameId, 100);
@@ -226,7 +232,9 @@ void HumanoidLocalization::reset(){
 
   if (m_initGlobal){
     this->initGlobal();
+      ROS_INFO("11");
   } else {
+      ROS_INFO("22");
     geometry_msgs::PoseWithCovarianceStampedPtr posePtr(new geometry_msgs::PoseWithCovarianceStamped());
 
     if (m_initFromTruepose){ // useful for evaluation, when ground truth available:
@@ -1128,6 +1136,32 @@ bool HumanoidLocalization::globalLocalizationCallback(std_srvs::Empty::Request& 
 
   return true;
 }
+
+
+bool HumanoidLocalization::Start_particlefilter_srv(humanoid_localization::SrvParticlefilter::Request &req, humanoid_localization::SrvParticlefilter::Response &res)
+{
+  ROS_INFO("global initialparticle filter is on");
+  
+  
+  if(req.start_particlefilter == 1){
+  
+    //global init particle filter on
+    ROS_INFO("Receive service require: global particle filter on ");
+    
+    
+    this->reset();
+    
+    res.particlefilter = 1;
+  }
+  else{
+    //global init particle filter off
+    ROS_INFO("Receive service require: global particle filter off ");
+    res.particlefilter = 0;
+    
+  }
+  return true;
+}
+
 
 void HumanoidLocalization::normalizeWeights() {
 
