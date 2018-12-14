@@ -232,9 +232,7 @@ void HumanoidLocalization::reset(){
 
   if (m_initGlobal){
     this->initGlobal();
-      ROS_INFO("11");
   } else {
-      ROS_INFO("22");
     geometry_msgs::PoseWithCovarianceStampedPtr posePtr(new geometry_msgs::PoseWithCovarianceStamped());
 
     if (m_initFromTruepose){ // useful for evaluation, when ground truth available:
@@ -290,9 +288,6 @@ void HumanoidLocalization::reset(){
   }
 
 
-
-
-
 #if defined(_BENCH_TIME)
   double dt = (ros::WallTime::now() - startTime).toSec();
   ROS_INFO_STREAM("Initialization of "<< m_numParticles << " particles took "
@@ -301,33 +296,6 @@ void HumanoidLocalization::reset(){
 
 
 }
-
-
-/*
-// service part
-bool HumanoidLocalization::Start_particlefilter(humanoid_localization::SrvParticlefilter::Request &req, humanoid_localization::SrvParticlefilter::Response &res)
-{
-  
-
-  ROS_INFO("global initialparticle filter is on");
-  
-  if(req.start_particlefilter == 1){
-    //global init particle filter on
-    this->initGlobal();
-    res.particlefilter = 1;
-  }
-  else{
-    //global init particle filter off
-    res.particlefilter = 0;
-  }
-
-  return true;
-
-
-
-}
-*/
-
 
 void HumanoidLocalization::initZRP(double& z, double& roll, double& pitch){
   if(m_initPoseRealZRP) {
@@ -1138,6 +1106,12 @@ bool HumanoidLocalization::globalLocalizationCallback(std_srvs::Empty::Request& 
 }
 
 
+/////////////////////////////////////////////////////////////////////
+///////////       ROS service : particle filter          ////////////
+///////////       service name(Msg) : SrvParticlefilter  ////////////
+///////////       type : callback function               ////////////
+/////////////////////////////////////////////////////////////////////
+
 bool HumanoidLocalization::Start_particlefilter_srv(humanoid_localization::SrvParticlefilter::Request &req, humanoid_localization::SrvParticlefilter::Response &res)
 {
   ROS_INFO("global initialparticle filter is on");
@@ -1148,7 +1122,7 @@ bool HumanoidLocalization::Start_particlefilter_srv(humanoid_localization::SrvPa
     //global init particle filter on
     ROS_INFO("Receive service require: global particle filter on ");
     
-    
+    // call reset function
     this->reset();
     
     res.particlefilter = 1;
@@ -1370,7 +1344,9 @@ void HumanoidLocalization::publishPoseEstimate(const ros::Time& time, bool publi
   tf::StampedTransform tmp_tf_stamped(latestTF.inverse(), transformExpiration, m_globalFrameId, m_targetFrameId);
   m_latest_transform = tmp_tf_stamped;
 
-  m_tfBroadcaster.sendTransform(tmp_tf_stamped);
+
+  // odom-map(world) TF is already published on ORB SLAM2
+  //m_tfBroadcaster.sendTransform(tmp_tf_stamped);
 
 }
 

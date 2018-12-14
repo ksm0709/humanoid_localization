@@ -1,7 +1,7 @@
 <!-- Test MotionModel / Odometry by using only one particle w. no noise -->
 
 <launch>
-	<node pkg="octomap_server" type="octomap_server_node" name="octomap_server" args="/home/ritjt/catkin_ws/src/ORB_SLAM2v2/global_octomap.bt" output="screen"/>
+	<node pkg="octomap_server" type="octomap_server_node" name="octomap_server" args="$(find ORB_SLAM2v2)/global_octomap.bt" output="screen"/>
         <node pkg="humanoid_localization" type="localization_node" name="humanoid_localization" output="screen">
         <remap from="point_cloud" to="/camera/depth/points" />      
         <param name="odom_frame_id" value="/odom" />

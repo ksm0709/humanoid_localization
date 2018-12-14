@@ -137,7 +137,6 @@ void MapModel::initGlobal(Particles& particles, double z, double roll, double pi
   m_map->getMetricSize(sizeX,sizeY,sizeZ);
   m_map->getMetricMin(minX, minY, minZ);
   
-  ROS_INFO("wtf");
 
   double weight = 1.0 / particles.size();
   Particles::iterator it = particles.begin();
