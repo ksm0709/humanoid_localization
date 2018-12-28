@@ -101,6 +101,10 @@ public:
 
   virtual bool isOccupied(octomap::OcTreeNode* node) const;
   virtual double getFloorHeight(const tf::Transform& pose) const;
+
+  void map_callback(const octomap_msgs::OctomapPtr& msg);
+  ros::Subscriber mSubMap;
+  bool mFlagSub;
 };
 
 }

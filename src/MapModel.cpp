@@ -260,33 +260,48 @@ double DistanceMap::getFloorHeight(const tf::Transform& pose) const{
 OccupancyMap::OccupancyMap(ros::NodeHandle* nh)
 : MapModel(nh)
 {
-  std::string servname = "octomap_binary";
-  ROS_INFO("Requesting the map from %s...", nh->resolveName(servname).c_str());
-  octomap_msgs::GetOctomap::Request req;
-  octomap_msgs::GetOctomap::Response resp;
-  while(nh->ok() && !ros::service::call(servname, req, resp))
+  std::string topic_name = "octomap_binary";
+  ROS_INFO("Subscribing octomap binary topic %s ...", nh->resolveName(topic_name).c_str());
+
+  mSubMap = nh->subscribe(topic_name,1,&OccupancyMap::map_callback, this);
+  mFlagSub = false;
+
+  ros::Rate rate(1);
+
+  while(nh->ok() && !mFlagSub)
   {
-    ROS_WARN("Request to %s failed; trying again...", nh->resolveName(servname).c_str());
-    usleep(1000000);
+      ROS_WARN("Wait for topic %s ...\n", nh->resolveName(topic_name).c_str());
+      rate.sleep();
+      ros::spinOnce();
   }
 
 
-// Groovy:
-#if ROS_VERSION_MINIMUM(1, 9, 0)
-  m_map.reset(dynamic_cast<octomap::OcTree*>(octomap_msgs::binaryMsgToMap(resp.map)));
-#else  // Fuerte:
-  m_map.reset(octomap_msgs::binaryMsgDataToMap(resp.map.data));
-#endif
+  // std::string servname = "/octomap_binary";
+  // ROS_INFO("Requesting the map from %s...", nh->resolveName(servname).c_str());
+  // octomap_msgs::GetOctomap::Request req;
+  // octomap_msgs::GetOctomap::Response resp;
+  // while(nh->ok() && !ros::service::call(servname, req, resp))
+  // {
+  //   ROS_WARN("Request to %s failed; trying again...\n", nh->resolveName(servname).c_str());
+  //   usleep(1000000);
+  // }
 
-  if (!m_map || m_map->size() <= 1){
-    ROS_ERROR("Occupancy map is erroneous, exiting...");
-    exit(-1);
-  }
-  double x,y,z;
-  m_map->getMetricSize(x,y,z);
-  ROS_INFO("Occupancy map initialized with %zd nodes (%.2f x %.2f x %.2f m), %f m res.", m_map->size(), x,y,z, m_map->getResolution());
+// // Groovy:
+// #if ROS_VERSION_MINIMUM(1, 9, 0)
+//   m_map.reset(dynamic_cast<octomap::OcTree*>(octomap_msgs::binaryMsgToMap(resp.map)));
+// #else  // Fuerte:
+//   m_map.reset(octomap_msgs::binaryMsgDataToMap(resp.map.data));
+// #endif
+
+//   if (!m_map || m_map->size() <= 1){
+//     ROS_ERROR("Occupancy map is erroneous, exiting...");
+//     exit(-1);
+//   }
+//   double x,y,z;
+//   m_map->getMetricSize(x,y,z);
+//   ROS_INFO("Occupancy map initialized with %zd nodes (%.2f x %.2f x %.2f m), %f m res.", m_map->size(), x,y,z, m_map->getResolution());
   
-  m_map->writeBinary("/tmp/octomap_loc");
+//   m_map->writeBinary("/tmp/octomap_loc");
 
 }
 
@@ -311,5 +326,34 @@ double OccupancyMap::getFloorHeight(const tf::Transform& pose)const {
 
 }
 
+void OccupancyMap::map_callback(const octomap_msgs::OctomapPtr& msg)
+{
+  if( !mFlagSub )
+  {
+  ROS_INFO("Recived octomap message size (%d)",msg->data.size());
+  msg->id = "OcTree";
+  octomap::AbstractOcTree* tree = octomap_msgs::msgToMap(*msg);
+  octomap::OcTree* octomap = dynamic_cast<octomap::OcTree*>(tree);
+
+  if (!octomap){
+    ROS_ERROR("Occupancy map is erroneous, failed to convert msg into map");
+    exit(-1);
+  }
+  
+  m_map.reset(octomap);
+ 
+  if (m_map->size() <= 1){
+    ROS_ERROR("Occupancy map is erroneous, map is empty");
+    exit(-1);
+  }
+
+  double x,y,z;
+  m_map->getMetricSize(x,y,z);
+  ROS_INFO("Occupancy map initialized with %zd nodes (%.2f x %.2f x %.2f m), %f m res.", m_map->size(), x,y,z, m_map->getResolution());
+
+  mFlagSub = true;
+  }
 }
 
+
+}
