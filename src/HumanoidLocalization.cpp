@@ -82,7 +82,7 @@ m_constrainMotionZ (false), m_constrainMotionRP(false), m_useTimer(false), m_tim
 
   m_privateNh.param("initial_pose/x", m_initPose(0), 0.0);
   m_privateNh.param("initial_pose/y", m_initPose(1), 0.0);
-  m_privateNh.param("initial_pose/z", m_initPose(2), 0.32); // hip height when standing
+  m_privateNh.param("initial_pose/z", m_initPose(2), 0.0); 
   m_privateNh.param("initial_pose/roll", m_initPose(3), 0.0);
   m_privateNh.param("initial_pose/pitch", m_initPose(4), 0.0);
   m_privateNh.param("initial_pose/yaw", m_initPose(5), 0.0);
@@ -90,9 +90,9 @@ m_constrainMotionZ (false), m_constrainMotionRP(false), m_useTimer(false), m_tim
 
   m_privateNh.param("initial_std/x", m_initNoiseStd(0), 0.1); // 0.1
   m_privateNh.param("initial_std/y", m_initNoiseStd(1), 0.1); // 0.1
-  m_privateNh.param("initial_std/z", m_initNoiseStd(2), 0.02); // 0.02
-  m_privateNh.param("initial_std/roll", m_initNoiseStd(3), 0.04); // 0.04
-  m_privateNh.param("initial_std/pitch", m_initNoiseStd(4), 0.04); // 0.04
+  m_privateNh.param("initial_std/z", m_initNoiseStd(2), 0.0); // 0.02
+  m_privateNh.param("initial_std/roll", m_initNoiseStd(3), 0.0); // 0.04
+  m_privateNh.param("initial_std/pitch", m_initNoiseStd(4), 0.0); // 0.04
   m_privateNh.param("initial_std_yaw", m_initNoiseStd(5), M_PI/12); // M_PI/12
 
   if (m_privateNh.hasParam("num_sensor_beams"))
@@ -164,22 +164,20 @@ m_constrainMotionZ (false), m_constrainMotionRP(false), m_useTimer(false), m_tim
   reset();
 
   // ROS subscriptions last:
-  m_globalLocSrv = m_nh.advertiseService("global_localization", &HumanoidLocalization::globalLocalizationCallback, this);
+  m_globalLocSrv = m_privateNh.advertiseService("global_localization", &HumanoidLocalization::globalLocalizationCallback, this);
 
   // ROS Reset service:
-  m_ResetLocSrv = m_nh.advertiseService("start_particlefilter", &HumanoidLocalization::Start_particlefilter_srv, this);
-
-
+  m_ResetLocSrv = m_privateNh.advertiseService("start_particlefilter", &HumanoidLocalization::Start_particlefilter_srv, this);
 
 
   // subscription on laser, tf message filter
-  m_laserSub = new message_filters::Subscriber<sensor_msgs::LaserScan>(m_nh, "scan", 100);
-  m_laserFilter = new tf::MessageFilter<sensor_msgs::LaserScan>(*m_laserSub, m_tfListener, m_odomFrameId, 100);
+  m_laserSub = new message_filters::Subscriber<sensor_msgs::LaserScan>(m_nh, "scan", 10);
+  m_laserFilter = new tf::MessageFilter<sensor_msgs::LaserScan>(*m_laserSub, m_tfListener, m_odomFrameId, 10);
   m_laserFilter->registerCallback(boost::bind(&HumanoidLocalization::laserCallback, this, _1));
 
   // subscription on point cloud, tf message filter
-  m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2>(m_nh, "point_cloud", 100);
-  m_pointCloudFilter = new tf::MessageFilter<sensor_msgs::PointCloud2>(*m_pointCloudSub, m_tfListener, m_odomFrameId, 100);
+  m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2>(m_nh, "point_cloud", 10);
+  m_pointCloudFilter = new tf::MessageFilter<sensor_msgs::PointCloud2>(*m_pointCloudSub, m_tfListener, m_odomFrameId, 10);
   m_pointCloudFilter->registerCallback(boost::bind(&HumanoidLocalization::pointCloudCallback, this, _1));
 
   // subscription on init pose, tf message filter
@@ -238,7 +236,7 @@ void HumanoidLocalization::reset(){
     if (m_initFromTruepose){ // useful for evaluation, when ground truth available:
       geometry_msgs::PoseStamped truePose;
       tf::Stamped<tf::Pose> truePoseTF;
-      tf::Stamped<tf::Pose> ident (tf::Transform(tf::createIdentityQuaternion(), tf::Vector3(0,0,0)), ros::Time::now(), "torso_real"); // TODO: param
+      tf::Stamped<tf::Pose> ident (tf::Transform(tf::createIdentityQuaternion(), tf::Vector3(0,0,0)), ros::Time::now(), "base_link"); // TODO: param
 
       ros::Time lookupTime = ros::Time::now();
       while(m_nh.ok() && !m_tfListener.waitForTransform(m_globalFrameId, ident.frame_id_, lookupTime, ros::Duration(1.0))){
@@ -1325,6 +1323,12 @@ void HumanoidLocalization::publishPoseEstimate(const ros::Time& time, bool publi
   // Send tf target->map (where target is typically odom)
   tf::Stamped<tf::Pose> targetToMapTF;
   try{
+    if( !m_tfListener.waitForTransform(m_baseFrameId, m_targetFrameId, time, ros::Duration(3.0)) )
+    {
+        ROS_WARN("Transformation %s to %s is unavailable", m_baseFrameId, m_targetFrameId);
+        return;
+    }
+
     tf::Stamped<tf::Pose> baseToMapTF(bestParticlePose.inverse(),time, m_baseFrameId);
     m_tfListener.transformPose(m_targetFrameId, baseToMapTF, targetToMapTF); // typically target == odom
   } catch (const tf::TransformException& e){
@@ -1346,7 +1350,7 @@ void HumanoidLocalization::publishPoseEstimate(const ros::Time& time, bool publi
 
 
   // odom-map(world) TF is already published on ORB SLAM2
-  //m_tfBroadcaster.sendTransform(tmp_tf_stamped);
+  m_tfBroadcaster.sendTransform(tmp_tf_stamped);
 
 }
 
